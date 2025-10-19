@@ -30,7 +30,7 @@ A simple persistent key-value store implemented in Python. Supports `SET`, `GET`
 
 1. **Clone the repository**:
 ```bash
-git clone https://github.com/srinath748/kvstore.git
+git clone https://github.com/sowjanyateppali/kvstore.git
 cd kvstore
 ```
 2. **Run the key-value store**:
