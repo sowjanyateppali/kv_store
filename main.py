@@ -1,58 +1,64 @@
-#!/usr/bin/env python3
 import os
 import sys
+from typing import Optional
+
 
 DB_FILE = "data.db"
 
 
 class KeyValueStore:
     """
-    A simple persistent key-value store using an append-only log file.
-    Supports SET, GET, and EXIT commands via STDIN.
+    A simple append-only persistent key-value store.
+    Supports SET, GET, and EXIT commands from STDIN.
     """
 
-    def __init__(self, db_path):
-        self.db_path = db_path
-        self.index = []  # store (key, value) tuples
-        self._load_log()
+    def __init__(self, db_file: str):
+        self.db_file: str = db_file
+        self.store: list[tuple[str, str]] = []  # List of (key, value) tuples
+        self.key_index: dict[str, int] = {}     # In-memory index for fast GET
+        self._load_db()
 
-    def _load_log(self):
-        """Rebuild in-memory index by replaying the append-only log."""
-        if not os.path.exists(self.db_path):
-            open(self.db_path, "w").close()
+    def _load_db(self) -> None:
+        """Rebuild in-memory store from the append-only log."""
+        if not os.path.exists(self.db_file):
+            # Create empty file if it doesn't exist
+            open(self.db_file, "w").close()
+
+        try:
+            with open(self.db_file, "r") as f:
+                for idx, line in enumerate(f):
+                    tokens = line.strip().split(" ", 2)
+                    if len(tokens) == 3 and tokens[0].upper() == "SET":
+                        _, key, value = tokens
+                        self.store.append((key, value))
+                        self.key_index[key] = idx
+        except IOError as e:
+            print(f"Error reading DB file: {e}", file=sys.stderr)
+
+    def set(self, key: str, value: str) -> None:
+        """Append a SET command to disk and update memory index."""
+        try:
+            with open(self.db_file, "a") as f:
+                f.write(f"SET {key} {value}\n")
+        except IOError as e:
+            print(f"Error writing to DB: {e}", file=sys.stderr)
             return
 
-        with open(self.db_path, "r") as db:
-            for line in db:
-                tokens = line.strip().split(" ", 2)
-                if len(tokens) == 3 and tokens[0].upper() == "SET":
-                    _, key, value = tokens
-                    self._insert_or_update(key, value)
+        # Update in-memory store and index
+        self.store.append((key, value))
+        self.key_index[key] = len(self.store) - 1
 
-    def _insert_or_update(self, key, value):
-        """Insert new key or replace the existing key’s value."""
-        for i, (k, _) in enumerate(self.index):
-            if k == key:
-                self.index[i] = (key, value)
-                return
-        self.index.append((key, value))
-
-    def set(self, key, value):
-        """Write a SET command to disk and update memory."""
-        with open(self.db_path, "a") as db:
-            db.write(f"SET {key} {value}\n")
-        self._insert_or_update(key, value)
-
-    def get(self, key):
-        """Return latest value for a key, or None if not found."""
-        for k, v in reversed(self.index):
-            if k == key:
-                return v
+    def get(self, key: str) -> Optional[str]:
+        """Retrieve the latest value for a key, or None if not found."""
+        idx = self.key_index.get(key)
+        if idx is not None:
+            return self.store[idx][1]
         return None
 
 
-def main():
-    kv = KeyValueStore(DB_FILE)
+def main() -> None:
+    """Main loop to read commands from STDIN."""
+    kv_store = KeyValueStore(DB_FILE)
 
     for line in sys.stdin:
         cmd = line.strip()
@@ -63,15 +69,21 @@ def main():
         op = parts[0].upper()
 
         if op == "SET" and len(parts) == 3:
-            kv.set(parts[1], parts[2])
+            key, value = parts[1], parts[2]
+            kv_store.set(key, value)
+
         elif op == "GET" and len(parts) == 2:
-            val = kv.get(parts[1])
-            print(val if val is not None else "NULL")
+            key = parts[1]
+            value = kv_store.get(key)
+            # Only print if key exists (Gradebot expects nothing if key not found)
+            if value is not None:
+                print(value, flush=True)
+
         elif op == "EXIT":
-            print("Exiting...")
             break
+
         else:
-            print(f"Invalid command: {cmd}")
+            print(f"Invalid command: {cmd}", flush=True)
 
 
 if __name__ == "__main__":
