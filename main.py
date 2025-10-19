@@ -14,8 +14,8 @@ class KeyValueStore:
 
     def __init__(self, db_file: str):
         self.db_file: str = db_file
-        self.store: list[tuple[str, str]] = []  # List of (key, value) tuples
-        self.key_index: dict[str, int] = {}     # In-memory index for fast GET
+        self.store: list[tuple[str, str]] = []  # List of (key,value) tuples
+        self.key_index: dict[str, int] = {}     # In-memory index for fast GET 
         self._load_db()
 
     def _load_db(self) -> None:
@@ -75,7 +75,7 @@ def main() -> None:
         elif op == "GET" and len(parts) == 2:
             key = parts[1]
             value = kv_store.get(key)
-            # Only print if key exists (Gradebot expects nothing if key not found)
+            # Only print if the key is exists ( Gradebot expects nothing if key not found )
             if value is not None:
                 print(value, flush=True)
 
