@@ -72,20 +72,8 @@ cd kvstore
 
 Score: 94% – fully functional and persistent key-value store
 
-## Improvements
-- Added type hints for clarity.
-- Optimized GET operation using in-memory index for faster lookups.
-- Improved error handling for file operations.
-- Compatible with automated Gradebot black-box testing.
-
 ## Author
 
 Name: Sowjanya Teppali
 
-EUID: 
-
-Course: CSCE 5350 – Build Your Own Database
-
-## License
-
-This project is for educational purposes in CSCE 5350.
+EUID: 11857046
